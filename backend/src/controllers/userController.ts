@@ -52,29 +52,46 @@ export const registerUser = async(req: Request, res: Response, next: NextFunctio
 }
 
 export const loginUser = async(req: Request, res:Response, next: NextFunction)=>{
-    const {email,password} = req.body;
-    const user = await User.findOne({email});
+    try{
+        const {email,password} = req.body;
+        const user = await User.findOne({email});
 
-    if(!user) return res.status(403).json({messageCode:"ERROR", message:"User not found"});
-    const validatePassword = await compare(password, user.password);
-    if(!validatePassword) return res.status(401).json({messageCode:"ERROR", message:"Passwords do not match"});
+        if(!user) return res.status(403).json({messageCode:"ERROR", message:"User not found"});
+        const validatePassword = await compare(password, user.password);
+        if(!validatePassword) return res.status(401).json({messageCode:"ERROR", message:"Passwords do not match"});
 
-    const token = createToken(user.id.toString(), user.email.toString(), "7d");
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate()+7);
-    res.clearCookie(COOKIE_NAME,{
-        httpOnly:true,
-        signed:true,
-        path:PATH,
-        domain:DOMAIN_NAME,
-    });
-    res.cookie(COOKIE_NAME,token,{
-        path:PATH,
-        domain:DOMAIN_NAME,
-        expires: expiryDate,
-        httpOnly:true,
-        signed: true,
-    });
+        const token = createToken(user.id.toString(), user.email.toString(), "7d");
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate()+7);
+        res.clearCookie(COOKIE_NAME,{
+            httpOnly:true,
+            signed:true,
+            path:PATH,
+            domain:DOMAIN_NAME,
+        });
+        res.cookie(COOKIE_NAME,token,{
+            path:PATH,
+            domain:DOMAIN_NAME,
+            expires: expiryDate,
+            httpOnly:true,
+            signed: true,
+        });
 
-    return res.status(200).json({messageCode:"OK", token});
+        return res.status(200).json({messageCode:"OK", name:user.name, email:user.email});
+    }catch (e){
+        return res.status(200).json({messageCode:"ERROR", error:e});
+    }
+}
+
+export const authorizeUser = async(req:Request, res:Response, next: NextFunction)=>{
+    try{
+        const user = await User.findById(res.locals.jwtData.id);
+        console.log(user._id.toString(), res.locals.jwtData.id);
+        if(!user || user._id.toString() !== res.locals.jwtData._id.toString()){
+            return res.status(403).json({messageCode:"ERROR", message:"Invalid Token"});
+        }
+        return res.status(200).json({messageCode:"OK", name:user.name, email:user.email})
+    }catch (err){
+        return res.status(200).json({messageCode:"ERROR", error:err});
+    }
 }

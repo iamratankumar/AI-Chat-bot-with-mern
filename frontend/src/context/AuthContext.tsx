@@ -1,4 +1,6 @@
+
 import {createContext, ReactNode, useContext, useEffect, useState} from "react";
+import {authUser, loginUser} from "../service/APIs.tsx";
 
 
 type User = {
@@ -19,10 +21,22 @@ export const AuthProvider = ({ children }:{children:ReactNode}) => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
 
     useEffect(() => {
-
+        (async()=>{
+            const data = await authUser();
+            if(data){
+                setUser({name:data.name, email: data.email});
+                setIsLoggedIn(true);
+            }
+        })();
     }, []);
 
-    const login = async (email: string, password: string) => {};
+    const login = async (email: string, password: string) => {
+        const data = await loginUser(email, password);
+        if(data){
+            setUser({name:data.name, email: data.email});
+            setIsLoggedIn(true);
+        }
+    };
     const register = async (email: string, password: string) => {}
     const logout = async () =>{};
 
